@@ -152,7 +152,7 @@ namespace LSE.Teleporter
         public Vector3D Position = Vector3D.Zero;
         public bool RecalculateWhenBlocked = true;
 
-        public Vector3D? GetCurrentPosition(bool recalculate=false)
+        public Vector3D? GetCurrentPosition(bool recalculate=true)
         {
             var position = Position;
             if (Entity != null)
@@ -234,6 +234,14 @@ namespace LSE.Teleporter
 			}
 		}
 
+        public int ProfilesAmount
+        {
+            get
+            {
+                return 2;
+            }
+        }
+
         public bool BeamEnemies
         {
             get
@@ -264,6 +272,7 @@ namespace LSE.Teleporter
         public ProfileListbox<Sandbox.ModAPI.Ingame.IMyOreDetector> ProfileListbox;
         public Control.SwitchControl<Sandbox.ModAPI.Ingame.IMyOreDetector> SwitchControl;
         public TargetCombobox<Sandbox.ModAPI.Ingame.IMyOreDetector> TargetsListbox;
+        public ProfileTextbox<Sandbox.ModAPI.Ingame.IMyOreDetector> ProfileTextbox;
 
         public MyDefinitionId PowerDefinitionId = new VRage.Game.MyDefinitionId(typeof(VRage.Game.ObjectBuilders.Definitions.MyObjectBuilder_GasProperties), "Electricity");
         public Sandbox.Game.EntityComponents.MyResourceSinkComponent Sink;
@@ -909,16 +918,12 @@ namespace LSE.Teleporter
                 "Teleport (To Profile)",
                 SendBeamMessage);
 
-            //Button = new SaveGPSButton<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
-            //    "SaveGPS",
-            //    "Save Profile",
-            //    SendSaveMessage);
-
             ProfileListbox = new ProfileListbox<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
                 "Profiles",
                 "Profiles:",
                 4);
 
+            ProfileTextbox = new ProfileTextbox<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity, "ProfileName", "Profile Name", "");
 
             SwitchControl = new FromSwitch<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
                 "FromTo",
@@ -1010,15 +1015,6 @@ namespace LSE.Teleporter
             var profile = GetProfile(profileNr);
             SaveProfileFromOutside(profile);
             Network.MessageUtils.SendMessageToAll(profile);
-            /*
-            var message = new Network.MessageProfile() {
-                Profile = profileIndex,
-                Targets = targets,
-                From = from,
-                TransporterId = Entity.EntityId };
-
-             * */
-            //SaveProfileFromOutside(message);
         }
     }
 
@@ -1083,14 +1079,17 @@ namespace LSE.Teleporter
 
         public override void FillContent(IMyTerminalBlock block, List<MyTerminalControlListBoxItem> items, List<MyTerminalControlListBoxItem> selected)
         {
+            var teleporter = block.GameLogic.GetAs<Teleporter>();
+
             Values[InternalName][block].Clear();
 
-            var maxProfiles = 2;
-            for (var profile = 0; profile < maxProfiles; ++profile)
+            var maxProfiles = teleporter.ProfilesAmount;
+            for (var profileNr = 0; profileNr < maxProfiles; ++profileNr)
             {
-                var item = new MyTerminalControlListBoxItem(VRage.Utils.MyStringId.GetOrCompute("Profile " + profile.ToString()),
-                    VRage.Utils.MyStringId.GetOrCompute("Profile " + profile.ToString()),
-                    profile);
+                var profile = teleporter.GetProfile(profileNr);
+                var item = new MyTerminalControlListBoxItem(VRage.Utils.MyStringId.GetOrCompute(profile.ProfileName),
+                    VRage.Utils.MyStringId.GetOrCompute(profile.ProfileName),
+                    profileNr);
 
                 Values[InternalName][block].Add(item);
             }
@@ -1115,7 +1114,7 @@ namespace LSE.Teleporter
             string title,
             int size = 5,
             List<MyTerminalControlListBoxItem> content = null)
-            : base(block, internalName, title, size, false, content)
+            : base(block, internalName, title, size, true, content)
         {
         }
 
@@ -1313,5 +1312,35 @@ namespace LSE.Teleporter
             teleporter.UpdateVisual();
         }
 
+    }
+
+    public class ProfileTextbox<T> : Control.Textbox<T>
+    {
+        public ProfileTextbox(
+            IMyTerminalBlock block,
+            string internalName,
+            string title,
+            string defaultValue)
+            : base(block, internalName, title, defaultValue)
+        {
+            CreateUI();
+        }
+
+        public override StringBuilder Getter(IMyTerminalBlock block)
+        {
+            var teleporter = block.GameLogic.GetAs<Teleporter>();
+            var profileNr = teleporter.ProfileListbox.GetterObjects(block)[0];
+            var profile = teleporter.GetProfile(profileNr);
+            return new StringBuilder(profile.ProfileName);
+        }
+
+        public override void Setter(IMyTerminalBlock block, StringBuilder builder)
+        {
+            var teleporter = block.GameLogic.GetAs<Teleporter>();
+            var profileNr = teleporter.ProfileListbox.GetterObjects(block)[0];
+            var profile = teleporter.GetProfile(profileNr);
+            profile.ProfileName = builder.ToString();
+            teleporter.SendProfileMessage(profileNr);
+        }
     }
 }

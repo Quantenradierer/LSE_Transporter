@@ -11,7 +11,7 @@ using VRage.ModAPI;
 
 namespace LSE.Control
 {
-    class Textbox<T> : BaseControl<T>
+    public class Textbox<T> : BaseControl<T>
     {
         string DefaultValue;
 
@@ -23,7 +23,6 @@ namespace LSE.Control
             : base(block, internalName, title)
         {
             DefaultValue = defaultValue;
-            CreateUI();
         }
 
         public override void OnCreateUI()
@@ -32,6 +31,7 @@ namespace LSE.Control
             control.Visible = ShowControl;
             control.Getter = Getter;
             control.Setter = Setter;
+            control.Title = VRage.Utils.MyStringId.GetOrCompute(Title);
             MyAPIGateway.TerminalControls.AddControl<T>(control);
         }
 
