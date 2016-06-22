@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <CubeBlocks>
+
+    <Definition xsi:type="MyObjectBuilder_OreDetectorDefinition">
+      <Id>
+        <TypeId>OreDetector</TypeId>
+        <SubtypeId>Transporter</SubtypeId>
+      </Id>
+      <DisplayName>Transporter Pad</DisplayName>
+      <Icon>Textures\GUI\Icons\TransporterPad.dds</Icon>
+      <CubeSize>Large</CubeSize>
+      <BlockTopology>TriangleMesh</BlockTopology>
+      <Size x="2" y="1" z="2" />
+      <ModelOffset x="0" y="0" z="0" />
+      <Model>Models\Cubes\Large\TransporterPad.mwm</Model>
+      <Components>
+        <Component Subtype="SteelPlate" Count="300" />
+        <Component Subtype="SmallTube" Count="400" />
+        <Component Subtype="LargeTube" Count="4" />
+        <Component Subtype="Computer" Count="160" />
+        <Component Subtype="RadioCommunication" Count="100" />
+        <Component Subtype="Superconductor" Count="120" />
+        <Component Subtype="Construction" Count="350" />
+        <Component Subtype="SteelPlate" Count="200" />
+      </Components>
+      <CriticalComponent Subtype="RadioCommunication" Index="0" />
+      <MountPoints>
+        <MountPoint Side="Bottom" StartX="0" StartY="0" EndX="2" EndY="2" />
+        <MountPoint Side="Top" StartX="0" StartY="0" EndX="2" EndY="2" />
+      </MountPoints>
+      <BuildProgressModels>
+        <Model BuildPercentUpperBound="0.25" File="Models\Cubes\Large\TransporterPad_Cons1.mwm" />		
+        <Model BuildPercentUpperBound="0.45" File="Models\Cubes\Large\TransporterPad_Cons2.mwm" />
+        <Model BuildPercentUpperBound="0.65" File="Models\Cubes\Large\TransporterPad_Cons3.mwm" />
+        <Model BuildPercentUpperBound="0.85" File="Models\Cubes\Large\TransporterPad_Cons4.mwm" />
+      </BuildProgressModels>
+      <BlockPairName>MolecularTransportation</BlockPairName>
+      <EdgeType>Light</EdgeType>
+      <PrimarySound>Transporter</PrimarySound>
+      <BuildTimeSeconds>45</BuildTimeSeconds>
+      <DamageEffectId>214</DamageEffectId>
+      <DamagedSound>ParticleElectrical</DamagedSound>
+    </Definition>
+    
+    <Definition xsi:type="MyObjectBuilder_OreDetectorDefinition">
+      <Id>
+        <TypeId>OreDetector</TypeId>
+        <SubtypeId>TransporterSingle</SubtypeId>
+      </Id>
+      <DisplayName>Transporter Pad Single</DisplayName>
+      <Icon>Textures\GUI\Icons\TransporterPadSingle.dds</Icon>
+      <CubeSize>Small</CubeSize>
+      <BlockTopology>TriangleMesh</BlockTopology>
+      <Size x="3" y="5" z="3" />
+      <ModelOffset x="0" y="0" z="0" />
+      <Model>Models\Cubes\Small\TransporterPadSingle.mwm</Model>
+      <Components>
+        <Component Subtype="SteelPlate" Count="300" />
+        <Component Subtype="SmallTube" Count="400" />
+        <Component Subtype="SmallTube" Count="4" />
+        <Component Subtype="Computer" Count="160" />
+        <Component Subtype="RadioCommunication" Count="100" />
+        <Component Subtype="Superconductor" Count="120" />
+        <Component Subtype="Construction" Count="350" />
+        <Component Subtype="SteelPlate" Count="200" />
+      </Components>
+      <CriticalComponent Subtype="RadioCommunication" Index="0" />
+      <MountPoints>
+        <MountPoint Side="Bottom" StartX="0" StartY="0" EndX="3" EndY="3" />
+        <MountPoint Side="Top" StartX="0" StartY="0" EndX="3" EndY="3" />
+      </MountPoints>
+      <BuildProgressModels>
+        <Model BuildPercentUpperBound="0.33" File="Models\Cubes\Small\TransporterPadSingle_Cons1.mwm" />		
+        <Model BuildPercentUpperBound="0.66" File="Models\Cubes\Small\TransporterPadSingle_Cons2.mwm" />
+      </BuildProgressModels>
+      <BlockPairName>MolecularTransportationSmall</BlockPairName>
+      <EdgeType>Light</EdgeType>
+      <PrimarySound>Transporter</PrimarySound>
+      <BuildTimeSeconds>45</BuildTimeSeconds>
+      <DamageEffectId>214</DamageEffectId>
+      <DamagedSound>ParticleElectrical</DamagedSound>
+    </Definition>
+   </CubeBlocks>
+  </Definitions>
