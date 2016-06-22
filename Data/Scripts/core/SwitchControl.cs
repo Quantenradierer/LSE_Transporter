@@ -84,7 +84,6 @@ namespace LSE.Control
         {
             bool value = DefaultValue;
             MyAPIGateway.Utilities.GetVariable<bool>(block.EntityId.ToString() + InternalName, out value);
-            MyAPIGateway.Utilities.ShowNotification("GetterSwitch");
             return value;
         }
 
