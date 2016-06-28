@@ -34,18 +34,25 @@ namespace LSE.Control
             Size = size;
             Multiselect = multiselect;
 
+            FixValues(block);
+            if (Content != null)
+            {
+                Values[InternalName][block] = Content;
+            }
+            CreateUI();
+        }
+
+        public void FixValues(IMyTerminalBlock block)
+        {
             if (!Values.ContainsKey(InternalName))
             {
                 Values[InternalName] = new Dictionary<IMyTerminalBlock, List<MyTerminalControlListBoxItem>>();
             }
 
-            if (Content == null)
+            if (!Values[InternalName].ContainsKey(block))
             {
-                Content = new List<MyTerminalControlListBoxItem>();
+                Values[InternalName][block] = new List<MyTerminalControlListBoxItem>();
             }
-
-            Values[InternalName][block] = Content;
-            CreateUI();
         }
 
         public override void OnCreateUI()
@@ -63,7 +70,7 @@ namespace LSE.Control
 
         public virtual void FillContent(IMyTerminalBlock block, List<MyTerminalControlListBoxItem> items, List<MyTerminalControlListBoxItem> selected)
         {
-
+            FixValues(block);
 
             items.Clear();
             selected.Clear();

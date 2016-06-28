@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <CubeBlocks>
+
+    <Definition xsi:type="MyObjectBuilder_OreDetectorDefinition">
+      <Id>
+        <TypeId>OreDetector</TypeId>
+        <SubtypeId>TransportJammer</SubtypeId>
+      </Id>
+      <DisplayName>Transport Jammer</DisplayName>
+      <Icon>Textures\GUI\Icons\TransporterPad.dds</Icon>
+      <CubeSize>Large</CubeSize>
+      <BlockTopology>TriangleMesh</BlockTopology>
+      <Size x="1" y="1" z="1" />
+      <ModelOffset x="0" y="0" z="0" />
+      <Model>Models\Cubes\Large\Jammer.mwm</Model>
+      <Components>
+        <Component Subtype="SteelPlate" Count="30" />
+        <Component Subtype="SmallTube" Count="40" />
+        <Component Subtype="Computer" Count="50" />
+        <Component Subtype="RadioCommunication" Count="50" />
+        <Component Subtype="Construction" Count="20" />
+        <Component Subtype="SteelPlate" Count="30" />
+      </Components>
+      <CriticalComponent Subtype="RadioCommunication" Index="0" />
+      <MountPoints>
+        <MountPoint Side="Bottom" StartX="0" StartY="0" EndX="2" EndY="2" />
+        <MountPoint Side="Top" StartX="0" StartY="0" EndX="2" EndY="2" />
+      </MountPoints>
+      <BuildProgressModels>
+        <Model BuildPercentUpperBound="0.25" File="Models\Cubes\Large\TransporterPad_Cons1.mwm" />		
+        <Model BuildPercentUpperBound="0.45" File="Models\Cubes\Large\TransporterPad_Cons2.mwm" />
+        <Model BuildPercentUpperBound="0.65" File="Models\Cubes\Large\TransporterPad_Cons3.mwm" />
+        <Model BuildPercentUpperBound="0.85" File="Models\Cubes\Large\TransporterPad_Cons4.mwm" />
+      </BuildProgressModels>
+      <BlockPairName>TransportJammer</BlockPairName>
+      <EdgeType>Light</EdgeType>
+      <PrimarySound>Transporter</PrimarySound>
+      <BuildTimeSeconds>45</BuildTimeSeconds>
+      <DamageEffectId>214</DamageEffectId>
+      <DamagedSound>ParticleElectrical</DamagedSound>
+    </Definition>
+    
+   </CubeBlocks>   
+</Definitions>

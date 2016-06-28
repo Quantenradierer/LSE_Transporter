@@ -50,8 +50,8 @@ namespace LSE
 
             if (!s_Configs.ContainsKey(Subtype))
             {
-			    var message = new LSE.Network.MessageConfig ();
-			    message.Side = LSE.Network.MessageSide.ClientSide;
+			    var message = new LSE.TransporterNetwork.MessageConfig ();
+			    message.Side = LSE.TransporterNetwork.MessageSide.ClientSide;
 			    message.GPSTargetRange = 5.0; // meters
 			    message.MaximumRange = 60 * 1000; // meters
 			    message.PowerPerKilometer = 1;  // megawatt

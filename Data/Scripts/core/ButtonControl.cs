@@ -20,21 +20,12 @@ namespace LSE.Control
 {
     public class ButtonControl<T> : BaseControl<T>
     {
-        public static Dictionary<string, Dictionary<IMyTerminalBlock, Action>> Functions = new Dictionary<string, Dictionary<IMyTerminalBlock, Action>>();
-
         public ButtonControl(
             IMyTerminalBlock block,
             string internalName,
-            string title,
-            Action function)
+            string title)
             : base(block, internalName, title)
         {
-            if (!Functions.ContainsKey (InternalName))
-			{
-                Functions[InternalName] = new Dictionary<IMyTerminalBlock, Action>();
-			}
-		    Functions[InternalName][block] = function;
-            CreateUI();
         }
 
         public override void OnCreateUI()
@@ -49,8 +40,7 @@ namespace LSE.Control
 
         public virtual void OnAction(IMyTerminalBlock block)
         {
-            Functions[InternalName][block]();
         }
 
     }
-}
+}   

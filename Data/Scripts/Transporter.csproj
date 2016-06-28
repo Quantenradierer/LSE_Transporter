@@ -87,19 +87,29 @@
   <ItemGroup>
     <Compile Include="core\Action.cs" />
     <Compile Include="core\ButtonControl.cs" />
-    <Compile Include="ClientServerCommunication.cs" />
+    <Compile Include="JammerNetwork.cs" />
+    <Compile Include="TransporterNetwork.cs" />
+    <Compile Include="core\Slider.cs" />
     <Compile Include="core\Control.cs" />
     <Compile Include="core\GameLogicComponent.cs" />
     <Compile Include="core\Logger.cs" />
     <Compile Include="core\Seperator.cs" />
+    <Compile Include="core\Checkbox.cs" />
+    <Compile Include="core\Textbox.cs" />
+    <Compile Include="Debug.cs" />
+    <Compile Include="Jammer.cs" />
     <Compile Include="Teleporter.cs" />
     <Compile Include="core\SwitchControl.cs" />
     <Compile Include="core\ComboboxControl.cs" />
+    <Compile Include="TransporterSingleLarge.cs" />
     <Compile Include="TransporterSingle.cs" />
     <Compile Include="Transporter.cs" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="ui\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.  

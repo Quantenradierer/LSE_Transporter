@@ -19,5 +19,24 @@
         </Wave>
       </Waves>
     </Sound>
-  </Sounds>
+
+    <Sound>
+      <Id>
+        <TypeId>AudioDefinition</TypeId>
+        <SubtypeId>FailedTransport</SubtypeId>
+      </Id>
+      <Category>BLOCK</Category>
+      <MaxDistance>30</MaxDistance>
+      <Volume>1</Volume>
+	  <Loopable>false</Loopable>
+      <Waves>
+        <Wave Type="D3">
+          <Start>Audio\failedtransport-mono.xwm</Start>
+        </Wave>
+		<Wave Type="D2">
+          <Start>Audio\failedtransport-stereo.xwm</Start>
+        </Wave>
+      </Waves>
+    </Sound>
+    </Sounds>
 </Definitions>

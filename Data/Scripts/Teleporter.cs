@@ -55,11 +55,9 @@ namespace LSE.Teleporter
 
         public void AddSound()
         {
-            {
-                var emitter = new Sandbox.Game.Entities.MyEntity3DSoundEmitter((VRage.Game.Entity.MyEntity)Entity);
-                var pair = new Sandbox.Game.Entities.MySoundPair("Transporter");
-                emitter.PlaySound(pair);
-            }
+            var emitter = new Sandbox.Game.Entities.MyEntity3DSoundEmitter((VRage.Game.Entity.MyEntity)Entity);
+            var pair = new Sandbox.Game.Entities.MySoundPair("Transporter");
+            emitter.PlaySound(pair);
         }
 
         public MatrixD? GetTargetMatrix(bool recalc=false)
@@ -69,7 +67,6 @@ namespace LSE.Teleporter
             if (translation == null)
             {
                 // no free space
-                MyAPIGateway.Utilities.ShowNotification("No free space");
                 return null;
             }
             if (Endpoint.Entity != null)
@@ -266,6 +263,16 @@ namespace LSE.Teleporter
         public static bool FirstStartStatic = true;
         public double Distance = 1;
 
+        public StringBuilder ErrorMessage = new StringBuilder();
+
+        public MyDefinitionId PowerDefinitionId = new VRage.Game.MyDefinitionId(typeof(VRage.Game.ObjectBuilders.Definitions.MyObjectBuilder_GasProperties), "Electricity");
+        public Sandbox.Game.EntityComponents.MyResourceSinkComponent Sink;
+        
+        public Dictionary<int, TransporterNetwork.MessageProfile> Profiles = new Dictionary<int, TransporterNetwork.MessageProfile>();
+
+        public List<TeleportInformation> TeleportingInfos = new List<TeleportInformation>();
+        public DateTime? TeleportStart = null;
+
         public LSE.Control.ButtonControl<Sandbox.ModAPI.Ingame.IMyOreDetector> Button;
         public LSE.Control.ControlAction<Sandbox.ModAPI.Ingame.IMyOreDetector> ActionBeam;
 
@@ -274,35 +281,32 @@ namespace LSE.Teleporter
         public TargetCombobox<Sandbox.ModAPI.Ingame.IMyOreDetector> TargetsListbox;
         public ProfileTextbox<Sandbox.ModAPI.Ingame.IMyOreDetector> ProfileTextbox;
 
-        public MyDefinitionId PowerDefinitionId = new VRage.Game.MyDefinitionId(typeof(VRage.Game.ObjectBuilders.Definitions.MyObjectBuilder_GasProperties), "Electricity");
-        public Sandbox.Game.EntityComponents.MyResourceSinkComponent Sink;
-        
-        public Dictionary<int, Network.MessageProfile> Profiles = new Dictionary<int, Network.MessageProfile>();
+        public RefreshCheckbox<Sandbox.ModAPI.Ingame.IMyOreDetector> FilterOutrange;
+        public RefreshCheckbox<Sandbox.ModAPI.Ingame.IMyOreDetector> FilterGPS;
+        public RefreshCheckbox<Sandbox.ModAPI.Ingame.IMyOreDetector> FilterPlayers;
+        public RefreshCheckbox<Sandbox.ModAPI.Ingame.IMyOreDetector> FilterTransporter;
+        public RefreshCheckbox<Sandbox.ModAPI.Ingame.IMyOreDetector> FilterPlanets;
 
-        public List<TeleportInformation> TeleportingInfos = new List<TeleportInformation>();
-        public DateTime? TeleportStart = null;
-
-
-        public static Dictionary<string, Network.MessageConfig> s_Configs = new Dictionary<string, Network.MessageConfig>();
-        public static void SetConfig(string subtype, Network.MessageConfig config)
+        public static Dictionary<string, TransporterNetwork.MessageConfig> s_Configs = new Dictionary<string, TransporterNetwork.MessageConfig>();
+        public static void SetConfig(string subtype, TransporterNetwork.MessageConfig config)
 		{
 			s_Configs[subtype] = config;
 		}
 
-		public LSE.Network.MessageConfig GetConfig()
+		public LSE.TransporterNetwork.MessageConfig GetConfig()
 		{
 			if (s_Configs.ContainsKey(Subtype))
 			{
 				return s_Configs [Subtype];
 			}
-			return new LSE.Network.MessageConfig ();
+			return new LSE.TransporterNetwork.MessageConfig ();
 		}
 
         public override void Init(MyObjectBuilder_EntityBase objectBuilder)
         {
             base.Init(objectBuilder);
             CubeBlock = (IMyCubeBlock)Entity;
-            if (!(CubeBlock).BlockDefinition.SubtypeName.Contains(Subtype)) { return; }
+            if (CubeBlock.BlockDefinition.SubtypeName != Subtype) { return; }
 
             CubeBlock.Components.TryGet<Sandbox.Game.EntityComponents.MyResourceSinkComponent>(out Sink);
             Sink.SetRequiredInputFuncByType(PowerDefinitionId, CalcRequiredPower);
@@ -352,7 +356,7 @@ namespace LSE.Teleporter
         public override void UpdateBeforeSimulation()
         {
             base.UpdateBeforeSimulation();
-			if (!(CubeBlock).BlockDefinition.SubtypeName.Contains(Subtype)) { return; }
+			if (CubeBlock.BlockDefinition.SubtypeName != Subtype) { return; }
 
             if (FirstStartStatic)
             {
@@ -364,21 +368,21 @@ namespace LSE.Teleporter
                         //byte[] byteData = System.Text.Encoding.UTF8.GetBytes(xml);
                         if (!MyAPIGateway.Utilities.FileExistsInGlobalStorage(subtype + ".xml"))
                         {
-                            var message = new LSE.Network.MessageConfig();
-                            var xml = MyAPIGateway.Utilities.SerializeToXML<Network.MessageConfig>(s_Configs[subtype]);
+                            var message = new LSE.TransporterNetwork.MessageConfig();
+                            var xml = MyAPIGateway.Utilities.SerializeToXML<TransporterNetwork.MessageConfig>(s_Configs[subtype]);
                             var writer = MyAPIGateway.Utilities.WriteFileInGlobalStorage(subtype + ".xml");
                             writer.Write(xml);
                             writer.Close();
                         }
                         var reader = MyAPIGateway.Utilities.ReadFileInGlobalStorage(subtype + ".xml");
                         var text = reader.ReadToEnd();
-                        var messageNew = MyAPIGateway.Utilities.SerializeFromXML<Network.MessageConfig>(text);
+                        var messageNew = MyAPIGateway.Utilities.SerializeFromXML<TransporterNetwork.MessageConfig>(text);
                         SetConfig(subtype, messageNew);
                     }
                 }
                 else
-                {
-                    LSE.Network.MessageUtils.SendMessageToServer(new Network.MessageClientConnected());
+                {    
+                    LSE.TransporterNetwork.MessageUtils.SendMessageToServer(new TransporterNetwork.MessageClientConnected());
                 }
             }
 
@@ -386,7 +390,7 @@ namespace LSE.Teleporter
             {
 
                 CreateUI();
-                UpdateVisual();
+                //UpdateVisual();
                 LoadProfiles();
 
                 FirstStart = false;
@@ -407,16 +411,46 @@ namespace LSE.Teleporter
 
             if (MyAPIGateway.Session.GameDateTime > transportTime)
             {
-                // TODO: Add distance  / power check
+
                 double distance = 0.0f;
                 foreach (var info in TeleportingInfos)
                 {
+
                     var matrix = info.GetTargetMatrix(true);
 
                     if (matrix != null && IsPositionInRange(matrix.Value.Translation))
                     {
                         if (IsEnoughPower(distance + info.Distance))
                         {
+                            if (!BeamEnemies)
+                            {
+                                var friendly = true;
+                                var friendlyEndpoint = true;
+                                var player = MyAPIGateway.Players.GetPlayerControllingEntity(info.Entity);
+                                var playerEndpoint = MyAPIGateway.Players.GetPlayerControllingEntity(info.Endpoint.Entity);
+                                if (player != null)
+                                {
+                                    friendly = player.GetRelationTo(CubeBlock.OwnerId).IsFriendly();
+                                }
+                                if (playerEndpoint != null)
+                                {
+                                    friendlyEndpoint = playerEndpoint.GetRelationTo(CubeBlock.OwnerId).IsFriendly();
+                                }
+
+                                if (!friendly || !friendlyEndpoint)
+                                {
+                                    StartFailedTransportSound(info.Entity);
+                                    continue;
+                                }
+
+                            }
+
+                            if (Jammer.IsProtected(matrix.Value.Translation, CubeBlock) || Jammer.IsProtected(info.Entity.GetPosition(), CubeBlock))
+                            {
+                                StartFailedTransportSound(info.Entity);
+                                continue;
+                            }
+
                             distance += info.Distance;
                             var matrixEntity = matrix.Value;
                             matrixEntity.Translation = matrixEntity.Translation + matrixEntity.Down * 0.9;
@@ -426,6 +460,10 @@ namespace LSE.Teleporter
                     info.StopEffects();
                 }
 
+                if (TeleportingInfos.Count() == 0)
+                {
+                    StartFailedTransportSound(Entity);
+                }
 
                 TeleportingInfos.Clear();
                 TeleportStart = null;
@@ -458,7 +496,7 @@ namespace LSE.Teleporter
         public override void UpdateBeforeSimulation100()
         {
             base.UpdateBeforeSimulation100();
-            if (!(CubeBlock).BlockDefinition.SubtypeName.Contains(Subtype)) { return; }
+            if (CubeBlock.BlockDefinition.SubtypeName != Subtype) { return; }
 
 
             DrawEmissive();
@@ -474,33 +512,19 @@ namespace LSE.Teleporter
         }
 
         public void DrawEmissive()
-        {
-            return;
-            /*
+        {            
             if (!CubeBlock.IsWorking)
             {
                 CubeBlock.SetEmissiveParts("Emissive", new Color(255, 0, 0), 0.0f);
-                return;
             }
-            bool validTeleport = false;
-            foreach (var teleportInfo in BeamUpPossible())
+            else if (TeleportStart != null && TeleportingInfos.Count == 0)
             {
-                if (teleportInfo.Player != null)
-                {
-                    validTeleport = true;
-                }
-            }
-
-            if (validTeleport)
-            {
-                CubeBlock.SetEmissiveParts("Emissive", new Color(0, 128, 0), 1.0f);
-                return;
+                CubeBlock.SetEmissiveParts("Emissive", new Color(32, 16, 0), 0.0f);
             }
             else
             {
-                CubeBlock.SetEmissiveParts("Emissive", new Color(32, 16, 0), 0.0f);
-                return;
-            }*/
+                CubeBlock.SetEmissiveParts("Emissive", new Color(0, 128, 0), 1.0f);
+            }
         }
 
         /*
@@ -622,7 +646,7 @@ namespace LSE.Teleporter
             */
         }
 
-        public List<IMyEntity> GetTeleportingEntities(Network.MessageProfile profile)
+        public List<IMyEntity> GetTeleportingEntities(TransporterNetwork.MessageProfile profile)
         {
             var entities = new List<IMyEntity>();
             if (!profile.From)
@@ -674,7 +698,7 @@ namespace LSE.Teleporter
             return entities;
         }
 
-        public List<TransportEndpoint> GetEndpoints(Network.MessageProfile profile)
+        public List<TransportEndpoint> GetEndpoints(TransporterNetwork.MessageProfile profile)
         {
             
             var targets = new List<TransportEndpoint>();
@@ -766,7 +790,6 @@ namespace LSE.Teleporter
             var maxTransports = Math.Min(Math.Min(teleportEntities.Count, endpoints.Count), TeleporterPads.Count);
 
             double distance = 0;
-            MyAPIGateway.Utilities.ShowNotification("ZA" + teleportEntities.Count.ToString() + "|" + endpoints.Count.ToString(), 6000);
             for (var teleportNr = 0; teleportNr < maxTransports; ++teleportNr)
             {   
                 var info = new TeleportInformation() { Entity = teleportEntities[teleportNr], Endpoint = endpoints[teleportNr], Transporter = Entity };
@@ -775,7 +798,6 @@ namespace LSE.Teleporter
                     distance += info.Distance;
                     teleportInfos.Add(info);
                 }
-                MyAPIGateway.Utilities.ShowNotification("ZB" + info.Distance.ToString(), 6000);
             }
             return teleportInfos;
         }
@@ -808,11 +830,6 @@ namespace LSE.Teleporter
             matrix.Translation = target;
             return matrix;
         }
-        IMyGps GetGPSbyName(string name)
-        {
-            var gpsList = MyAPIGateway.Session.GPS.GetGpsList(MyAPIGateway.Session.LocalHumanPlayer.IdentityId);
-            return gpsList.Find((x) => x.Name == name);
-        }
 
         public bool IsPositionInRange(Vector3D? pos)
         {
@@ -823,42 +840,14 @@ namespace LSE.Teleporter
             return false;
         }
 
-
-        public List<IMyPlayer> GetPlayers()
-        {
-            var players = new List<IMyPlayer>();
-            MyAPIGateway.Players.GetPlayers(players, (x) => IsPositionInRange(x.GetPosition()));
-            return players;
-        }
-
-        public List<Sandbox.Game.Entities.MyPlanet> GetPlanetsInRange()
-        {
-            var planets = new List<Sandbox.Game.Entities.MyPlanet>();
-            var entities = new HashSet<IMyEntity>();
-            MyAPIGateway.Entities.GetEntities(entities,
-                (x) => (x.GetPosition() - Entity.GetPosition()).LengthSquared() < Math.Pow(MAX_PLANET_SIZE + MaximumRange, 2));
-            foreach (var entity in entities)
-            {
-                try
-                {
-                    planets.Add((Sandbox.Game.Entities.MyPlanet)entity);
-                }
-                catch
-                {
-                }
-            }
-            return planets;
-        }
-
-        public IMyPlayer GetPlayerByName(string name)
-        {
-            return GetPlayers().FirstOrDefault((x) => x.DisplayName == name);
-        }
-
         public List<IMyPlayer> GetPlayersByPosition(Vector3D pos, double distanceSquared)
         {
             var players = new List<IMyPlayer>();
             MyAPIGateway.Players.GetPlayers(players, (x) => (x.GetPosition() - pos).LengthSquared() < distanceSquared && IsPositionInRange(x.GetPosition()));
+            if (!BeamEnemies)
+            {
+                players.RemoveAll((x) => !x.GetRelationTo(CubeBlock.OwnerId).IsFriendly());
+            }
             return players;
         }
 
@@ -883,20 +872,19 @@ namespace LSE.Teleporter
             return name;
         }
 
-        public void SendBeamMessage()
+
+        public void SendBeamMessage(int profileNr)
         {
-            var message = new Network.MessageBeam()
+            var message = new TransporterNetwork.MessageBeam()
             {
                 EntityId = Entity.EntityId,
-                ProfileNr = ProfileListbox.GetterObjects((IMyFunctionalBlock)Entity)[0]
+                ProfileNr = profileNr
             };
-            BeamUpAll(message.ProfileNr);
-            //Network.MessageUtils.SendMessageToAll(message);
+            //BeamUpAll(message.ProfileNr);
+            TransporterNetwork.MessageUtils.SendMessageToAll(message);
         }
 
-
-
-        void CreateUI()
+        void RemoveOreUI()
         {
             List<IMyTerminalAction> actions = new List<IMyTerminalAction>();
             MyAPIGateway.TerminalControls.GetActions<Sandbox.ModAPI.Ingame.IMyOreDetector>(out actions);
@@ -906,17 +894,21 @@ namespace LSE.Teleporter
             List<IMyTerminalControl> controls = new List<IMyTerminalControl>();
             MyAPIGateway.TerminalControls.GetControls<Sandbox.ModAPI.Ingame.IMyOreDetector>(out controls);
             var antennaControl = controls.First((x) => x.Id.ToString() == "BroadcastUsingAntennas");
-            antennaControl.Visible = ShowControlOreDetectorControls;  
+            antennaControl.Visible = ShowControlOreDetectorControls;
             var radiusControl = controls.First((x) => x.Id.ToString() == "Range");
             radiusControl.Visible = ShowControlOreDetectorControls;
+        }
 
-            new Control.Seperator<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity, "TransporterSeperator1");
-            new Control.Seperator<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity, "TransporterSeperator2");
+
+        void CreateUI()
+        {
+            RemoveOreUI();
+            //new Control.Seperator<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity, "TransporterSeperator1");
+            //new Control.Seperator<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity, "TransporterSeperator2");
 
             Button = new BeamButton<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
                 "Beam",
-                "Teleport (To Profile)",
-                SendBeamMessage);
+                "Teleport");
 
             ProfileListbox = new ProfileListbox<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
                 "Profiles",
@@ -933,31 +925,117 @@ namespace LSE.Teleporter
 
             TargetsListbox = new TargetCombobox<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
                 "Targets",
-                "Targets in range:",
+                "Targets (saved ones are always visible):",
                 8);
 
-            ActionBeam = new LSE.Control.ControlAction<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
-                "Beam",
-                "Teleport (to Profile)",
-                "Teleport (to Profile",
-                SendBeamMessage);
-             
+            FilterOutrange = new RefreshCheckbox<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
+                "FilterOutrange",
+                "Hide far targets ",
+                true);
+
+            FilterGPS = new RefreshCheckbox<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
+                "FilterGPS",
+                "Hide GPS           ",
+                false);
+
+            FilterPlayers = new RefreshCheckbox<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
+                "FilterPlayers",
+                "Hide Players      ",
+                false);
+
+            FilterTransporter = new RefreshCheckbox<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
+                "FilterTransporter",
+                "Hide Transporter",
+                false);
+
+            FilterPlanets = new RefreshCheckbox<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
+                "FilterPlanets",
+                "Hide Planets      ",
+                false);
+
+
+            for (var actionIndex = 0; actionIndex < ProfilesAmount; ++actionIndex)
+            {
+                ActionBeam = new ActivateProfileAction<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
+                    "Beam" + actionIndex.ToString(),
+                    "Teleport - Profile " + actionIndex.ToString(),
+                    actionIndex);
+            } 
         }
 
+        public void StartFailedTransportSound(IMyEntity entity)
+        {
+            var emitter = new Sandbox.Game.Entities.MyEntity3DSoundEmitter((VRage.Game.Entity.MyEntity)Entity);
+            var pair = new Sandbox.Game.Entities.MySoundPair("FailedTransport");
+            emitter.PlaySound(pair);            
+        }
 
-        public List<IMyGps> GetGPSInRange()
+        public List<IMyGps> GetGPS(bool filterOutRange)
         {
             var gpsList = MyAPIGateway.Session.GPS.GetGpsList(MyAPIGateway.Session.LocalHumanPlayer.IdentityId);
-            gpsList.RemoveAll((x) => !IsPositionInRange(x.Coords));
+            if (filterOutRange)
+            {
+                gpsList.RemoveAll((x) => !IsPositionInRange(x.Coords));
+            }
             return gpsList;
         }
 
-        public List<Teleporter> GetTransporterInRange()
+        public List<Teleporter> GetTransporter(bool filterOutRange)
         {
             var transporterInRange = new List<Teleporter>(Teleporter.TeleporterList);
-            transporterInRange.RemoveAll((x) => !IsPositionInRange(x.Entity.GetPosition()) || this == x);
+            if (filterOutRange)
+            {
+                transporterInRange.RemoveAll((x) => !IsPositionInRange(x.Entity.GetPosition()));
+            }
+            transporterInRange.Remove(this);
             return transporterInRange;
         }
+
+        public List<IMyPlayer> GetPlayers(bool filterOutRange)
+        {
+            var players = new List<IMyPlayer>();
+            MyAPIGateway.Players.GetPlayers(players);
+            if (filterOutRange)
+            {
+                players.RemoveAll((x) => !IsPositionInRange(x.GetPosition()));
+            }
+
+            if (!BeamEnemies)
+            {
+                players.RemoveAll((x) => !x.GetRelationTo(CubeBlock.OwnerId).IsFriendly());
+            }
+            return players;
+        }
+
+        public List<Sandbox.Game.Entities.MyPlanet> GetPlanets(bool filterOutRange)
+        {
+            var planets = new List<Sandbox.Game.Entities.MyPlanet>();
+            var entities = new HashSet<IMyEntity>();
+            if (filterOutRange)
+            {
+                MyAPIGateway.Entities.GetEntities(entities,
+                (x) => (x.GetPosition() - Entity.GetPosition()).LengthSquared() < Math.Pow(MAX_PLANET_SIZE + MaximumRange, 2));
+            }
+            foreach (var entity in entities)
+            {
+                try
+                {
+                    var planet = (Sandbox.Game.Entities.MyPlanet)entity;
+                    var pos = entity.GetPosition();
+                    if (!filterOutRange ||
+                        IsPositionInRange(planet.GetClosestSurfacePointGlobal(ref pos)))
+                    {
+                        planets.Add(planet);
+                    }
+                }
+                catch
+                {
+                }
+            }
+            return planets;
+        }
+
+
 
         bool ShowControlOreDetectorControls(IMyTerminalBlock block)
         {
@@ -983,7 +1061,7 @@ namespace LSE.Teleporter
             MyAPIGateway.Utilities.GetVariable<string>(Entity.EntityId + "-Profiles", out xml);
             if (xml != null)
             {
-                var profileList = MyAPIGateway.Utilities.SerializeFromXML<List<Network.MessageProfile>>(xml);
+                var profileList = MyAPIGateway.Utilities.SerializeFromXML<List<TransporterNetwork.MessageProfile>>(xml);
                 foreach (var profile in profileList)
                 {
                     Profiles[profile.Profile] = profile;
@@ -991,20 +1069,21 @@ namespace LSE.Teleporter
             }
         }
 
-        public void SaveProfileFromOutside(Network.MessageProfile message)
+        public void SaveProfileFromOutside(TransporterNetwork.MessageProfile message)
         {
             Profiles[message.Profile] = message;
-            var profileList = new List<Network.MessageProfile>(Profiles.Values);
-            var xml = MyAPIGateway.Utilities.SerializeToXML<List<Network.MessageProfile>>(profileList);
+            var profileList = new List<TransporterNetwork.MessageProfile>(Profiles.Values);
+            var xml = MyAPIGateway.Utilities.SerializeToXML<List<TransporterNetwork.MessageProfile>>(profileList);
             MyAPIGateway.Utilities.SetVariable<string>(Entity.EntityId + "-Profiles", xml);
             UpdateVisual();
         }
 
-        public Network.MessageProfile GetProfile(int profileNr)
+        public TransporterNetwork.MessageProfile GetProfile(int profileNr)
         {
-            var profile = Profiles.GetValueOrDefault(profileNr, new Network.MessageProfile() {
+            var profile = Profiles.GetValueOrDefault(profileNr, new TransporterNetwork.MessageProfile() {
                 Profile = profileNr,
-                ProfileName = "Profile " + profileNr.ToString()
+                ProfileName = "Profile " + profileNr.ToString(),
+                TransporterId = Entity.EntityId
             });
             Profiles[profileNr] = profile;
             return profile;
@@ -1014,7 +1093,7 @@ namespace LSE.Teleporter
         {
             var profile = GetProfile(profileNr);
             SaveProfileFromOutside(profile);
-            Network.MessageUtils.SendMessageToAll(profile);
+            TransporterNetwork.MessageUtils.SendMessageToAll(profile);
         }
     }
 
@@ -1049,20 +1128,6 @@ namespace LSE.Teleporter
         }
     }
 
-    public class BeamButton<T> : LSE.Control.ButtonControl<T>
-    {
-        public BeamButton(
-            IMyTerminalBlock block,
-            string internalName,
-            string title,
-            Action function
-            )
-            : base(block, internalName, title, function)
-        {
-
-        }
-    }    
-
     public class ProfileListbox<T> : LSE.Control.ComboboxControl<T, int>
     {
         public ProfileListbox(
@@ -1079,9 +1144,11 @@ namespace LSE.Teleporter
 
         public override void FillContent(IMyTerminalBlock block, List<MyTerminalControlListBoxItem> items, List<MyTerminalControlListBoxItem> selected)
         {
+            FixValues(block);
             var teleporter = block.GameLogic.GetAs<Teleporter>();
 
             Values[InternalName][block].Clear();
+            items.Clear();
 
             var maxProfiles = teleporter.ProfilesAmount;
             for (var profileNr = 0; profileNr < maxProfiles; ++profileNr)
@@ -1096,6 +1163,21 @@ namespace LSE.Teleporter
             base.FillContent(block, items, selected);
         }
 
+        public virtual List<int> GetterObjects(IMyTerminalBlock block)
+        {
+            var teleporter = block.GameLogic.GetAs<Teleporter>();
+            var objects = base.GetterObjects(block);
+            if (objects.Count == 0)
+            {
+                objects.Add(0);
+            }
+            else if (objects[0] >= teleporter.ProfilesAmount)
+            {
+                objects.Clear();
+                objects.Add(0);
+            }
+            return objects;
+        }
         
         public override void Setter(IMyTerminalBlock block, List<MyTerminalControlListBoxItem> selected)
         {
@@ -1106,7 +1188,7 @@ namespace LSE.Teleporter
         }
     }
 
-    public class TargetCombobox<T> : LSE.Control.ComboboxControl<T, Network.MessageTarget>
+    public class TargetCombobox<T> : LSE.Control.ComboboxControl<T, TransporterNetwork.MessageTarget>
     {
         public TargetCombobox(
             IMyTerminalBlock block,
@@ -1119,42 +1201,41 @@ namespace LSE.Teleporter
         }
 
 
-        public double DistanceTo(IMyTerminalBlock block, Network.MessageTarget target)
+        public double DistanceTo(IMyTerminalBlock block, TransporterNetwork.MessageTarget target)
         {
-            var pos = target.TargetPos;
-            if (pos == null)
+            var pos = target.GetApproximatelyPosition();
+            if (pos != null)
             {
-                pos = Vector3D.Zero;
+                return (block.GetPosition() - pos.Value).Length();
             }
-
-            var entity = target.GetTarget();
-            if (entity != null)
-            {
-                pos = pos.Value + entity.GetPosition();
-            }
-
-            var player = target.GetPlayerEntity();
-            if (player != null)
-            {
-                pos = pos.Value + player.GetPosition();
-            }
-
-            return (block.GetPosition() - pos.Value).Length();
+            return 0.0f;
         }
 
-        public MyTerminalControlListBoxItem TargetToItem(IMyTerminalBlock block, Network.MessageTarget target)
+        public MyTerminalControlListBoxItem TargetToItem(IMyTerminalBlock block, TransporterNetwork.MessageTarget target)
         {
             var teleporter = block.GameLogic.GetAs<Teleporter>();
             var from = teleporter.SwitchControl.Getter(block);
 
             var name = target.GetDisplayName(from);
             var distance = DistanceTo(block, target);
+            string distanceString = "";
+
+            var pos = target.GetApproximatelyPosition();
+            if (distance > teleporter.MaximumRange || (pos != null && Jammer.IsProtected(pos.Value, (IMyCubeBlock)block)))
+            {
+                distanceString = "???km";
+            }
+            else
+            {
+                distanceString = (distance / 1000).ToString("0.000") + "km";
+            }
+
             return new MyTerminalControlListBoxItem(VRage.Utils.MyStringId.GetOrCompute(name),
-                VRage.Utils.MyStringId.GetOrCompute((distance / 1000).ToString("0.000") + "km"),
+                VRage.Utils.MyStringId.GetOrCompute(distanceString),
                 target);
         }
 
-        public void AddTarget(IMyTerminalBlock block, Network.MessageTarget target)
+        public void AddTarget(IMyTerminalBlock block, TransporterNetwork.MessageTarget target)
         {
             var item = TargetToItem(block, target);
             Values[InternalName][block].Add(item);
@@ -1163,10 +1244,14 @@ namespace LSE.Teleporter
         public void AddGps(IMyTerminalBlock block)
         {
             var teleporter = block.GameLogic.GetAs<Teleporter>();
-            var gpsList = teleporter.GetGPSInRange();
+            if (teleporter.FilterGPS.Getter(block))
+            {
+                return;
+            }
+            var gpsList = teleporter.GetGPS(teleporter.FilterOutrange.Getter(block));
             foreach (var gps in gpsList)
             {
-                var target = new Network.MessageTarget()
+                var target = new TransporterNetwork.MessageTarget()
                 {
                     Type = 0,
                     TargetName = gps.Name,
@@ -1179,10 +1264,15 @@ namespace LSE.Teleporter
         public void AddPlayers(IMyTerminalBlock block)
         {
             var teleporter = block.GameLogic.GetAs<Teleporter>();
-            var players = teleporter.GetPlayers();
+            if (teleporter.FilterPlayers.Getter(block))
+            {
+                return;
+            }
+
+            var players = teleporter.GetPlayers(teleporter.FilterOutrange.Getter(block));
             foreach (var player in players)
             {
-                var target = new Network.MessageTarget()
+                var target = new TransporterNetwork.MessageTarget()
                 {
                     Type = 1,
                     TargetName = player.DisplayName,
@@ -1195,11 +1285,16 @@ namespace LSE.Teleporter
         public void AddTransporters(IMyTerminalBlock block)
         {
             var teleporter = block.GameLogic.GetAs<Teleporter>();
-            var transporters = teleporter.GetTransporterInRange();
+            if (teleporter.FilterTransporter.Getter(block))
+            {
+                return;
+            }
+
+            var transporters = teleporter.GetTransporter(teleporter.FilterOutrange.Getter(block));
             foreach (var otherTransporter in transporters)
             {
                 var name = ((IMyFunctionalBlock)otherTransporter.Entity).CustomName;
-                var target = new Network.MessageTarget()
+                var target = new TransporterNetwork.MessageTarget()
                 {
                     Type = 2,
                     TargetName = name,
@@ -1212,9 +1307,13 @@ namespace LSE.Teleporter
         public void AddPlanets(IMyTerminalBlock block)
         {
             var teleporter = block.GameLogic.GetAs<Teleporter>();
-            foreach (var planet in teleporter.GetPlanetsInRange())
+            if (teleporter.FilterPlanets.Getter(block))
             {
-                var target = new Network.MessageTarget()
+                return;
+            }
+            foreach (var planet in teleporter.GetPlanets(teleporter.FilterOutrange.Getter(block)))
+            {
+                var target = new TransporterNetwork.MessageTarget()
                 {
                     Type = 3,
                     TargetName = planet.Generator.Id.SubtypeId.ToString(),
@@ -1228,6 +1327,8 @@ namespace LSE.Teleporter
         {
             var teleporter = block.GameLogic.GetAs<Teleporter>();
             Values[InternalName][block].Clear();
+            items.Clear();
+
             var from = teleporter.SwitchControl.Getter(block);
             if (from)
             {
@@ -1272,7 +1373,7 @@ namespace LSE.Teleporter
         }
 
         void SetterObjects(IMyTerminalBlock block,
-            List<Network.MessageTarget> targets)
+            List<TransporterNetwork.MessageTarget> targets)
         {
             var selected = new List<MyTerminalControlListBoxItem>();
             var teleporter = block.GameLogic.GetAs<Teleporter>();
@@ -1295,10 +1396,10 @@ namespace LSE.Teleporter
 
         public override void Setter(IMyTerminalBlock block, List<MyTerminalControlListBoxItem> selected)
         {
-            var targets = new List<Network.MessageTarget>();
+            var targets = new List<TransporterNetwork.MessageTarget>();
             foreach (var target in selected)
             {
-                targets.Add((Network.MessageTarget)target.UserData);
+                targets.Add((TransporterNetwork.MessageTarget)target.UserData);
             }
 
             var teleporter = block.GameLogic.GetAs<Teleporter>();
@@ -1341,6 +1442,81 @@ namespace LSE.Teleporter
             var profile = teleporter.GetProfile(profileNr);
             profile.ProfileName = builder.ToString();
             teleporter.SendProfileMessage(profileNr);
+        }
+    }
+
+    //            var profileNr = ProfileListbox.GetterObjects((IMyFunctionalBlock)Entity)[0];
+
+
+    public class ActivateProfileAction<T> : Control.ControlAction<T>
+    {
+        public int ProfileNr;
+        public ActivateProfileAction(
+            IMyTerminalBlock block,
+            string internalName,
+            string name,
+            int profileNr)
+            : base(block, internalName, name)
+        {
+            ProfileNr = profileNr;
+        }
+
+        public override bool Visible(IMyTerminalBlock block)
+        {
+            return base.Visible(block) && ProfileNr < block.GameLogic.GetAs<Teleporter>().MaximumRange;
+        }
+
+        public override void OnAction(IMyTerminalBlock block)
+        {
+            var teleporter = block.GameLogic.GetAs<Teleporter>();
+            teleporter.SendBeamMessage(ProfileNr);
+        }
+
+        public override void Writer(IMyTerminalBlock block, StringBuilder builder)
+        {
+            var profile = block.GameLogic.GetAs<Teleporter>().GetProfile(ProfileNr);
+            builder.Clear();
+            builder.Append(profile.ProfileName);
+        }
+
+    }
+    public class BeamButton<T> : LSE.Control.ButtonControl<T>
+    {
+        public BeamButton(
+            IMyTerminalBlock block,
+            string internalName,
+            string title)
+            : base(block, internalName, title)
+        {
+            CreateUI();
+        }
+
+        public override void OnAction(IMyTerminalBlock block)
+        {
+            var teleporter = block.GameLogic.GetAs<Teleporter>();
+            var profileNr = teleporter.ProfileListbox.GetterObjects(block)[0];
+            teleporter.SendBeamMessage(profileNr);
+        }
+    }
+
+    public class RefreshCheckbox<T> : LSE.Control.Checkbox<T>
+    {
+        public RefreshCheckbox(IMyTerminalBlock block,
+            string internalName,
+            string title,
+            bool defaultValue = true)
+            :base(block, internalName, title, defaultValue)
+        {
+            CreateUI();
+        }
+
+
+        public override void Setter(IMyTerminalBlock block, bool newState)
+        {
+            base.Setter(block, newState);
+
+            var teleporter = block.GameLogic.GetAs<Teleporter>();
+            teleporter.UpdateVisual();
         }
     }
 }

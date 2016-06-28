@@ -98,16 +98,6 @@ namespace LSE.Control
             Setter(block, !Getter(block));
         }
 
-        void OnAction(IMyTerminalBlock block)
-        {
-            Setter(block, true);
-        }
-
-        void OffAction(IMyTerminalBlock block)
-        {
-            Setter(block, true);
-        }
-
         void HotbarText(IMyTerminalBlock block, StringBuilder hotbarText)
         {
             hotbarText.Clear();

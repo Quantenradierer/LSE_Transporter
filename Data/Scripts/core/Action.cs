@@ -20,37 +20,18 @@ namespace LSE.Control
 {
     public class ControlAction<T>
     {
-        public static Dictionary<string, Dictionary<IMyTerminalBlock, string>> Texts = new Dictionary<string, Dictionary<IMyTerminalBlock, string>>();
-        public static Dictionary<string, Dictionary<IMyTerminalBlock, Action>> Functions = new Dictionary<string, Dictionary<IMyTerminalBlock, Action>>();
-
-
         public SerializableDefinitionId Definition;
         public string InternalName;
         public string Name;
-        public string HotbarText;
 
         public ControlAction(
             IMyTerminalBlock block,
             string internalName,
-            string name,
-            string hotbarText,
-            Action function)
+            string name)
         {
             Name = name;
             Definition = block.BlockDefinition;
             InternalName = internalName + Definition.SubtypeId;
-
-            if (!Texts.ContainsKey(InternalName))
-            {
-                Texts[InternalName] = new Dictionary<IMyTerminalBlock, string>();
-            }
-            Texts[InternalName][block] = hotbarText;
-
-            if (!Functions.ContainsKey(InternalName))
-            {
-                Functions[InternalName] = new Dictionary<IMyTerminalBlock, Action>();
-            }
-            Functions[InternalName][block] = function;
 
             var controls = new List<IMyTerminalAction>();
             MyAPIGateway.TerminalControls.GetActions<T>(out controls);
@@ -61,13 +42,19 @@ namespace LSE.Control
                 action.Action = OnAction;
                 action.Name = new StringBuilder(Name);
                 action.Enabled = Visible;
+                action.Writer = Writer;
+                action.Icon = @"Textures\GUI\Icons\Teleport.dds";  
                 MyAPIGateway.TerminalControls.AddAction<T>(action);
             }
         }
 
-        public void OnAction(IMyTerminalBlock block)
+        public virtual void Writer(IMyTerminalBlock block, StringBuilder builder)
         {
-            Functions[InternalName][block]();
+        
+        }
+
+        public virtual void OnAction(IMyTerminalBlock block)
+        {
         }
 
         public virtual bool Visible(IMyTerminalBlock block)
@@ -75,9 +62,5 @@ namespace LSE.Control
             return block.BlockDefinition.TypeId == Definition.TypeId &&
                     block.BlockDefinition.SubtypeId == Definition.SubtypeId;
         }
-
-        
-
     }
-
 }
