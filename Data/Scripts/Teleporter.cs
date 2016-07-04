@@ -445,9 +445,16 @@ namespace LSE.Teleporter
 
                             }
 
-                            if (Jammer.IsProtected(matrix.Value.Translation, CubeBlock) || Jammer.IsProtected(info.Entity.GetPosition(), CubeBlock))
+                            var endpointProtected = Jammer.IsProtected(matrix.Value.Translation, CubeBlock);
+                            var entityProtected = Jammer.IsProtected(info.Entity.GetPosition(), CubeBlock);
+                            if (endpointProtected || entityProtected)
                             {
                                 StartFailedTransportSound(info.Entity);
+                                if (!MyAPIGateway.Multiplayer.IsServer &&
+                                    MyAPIGateway.Session.LocalHumanPlayer.Controller.ControlledEntity.Entity == info.Entity)
+                                {
+                                    MyAPIGateway.Utilities.ShowNotification("Jammer prevented transport.");
+                                }
                                 continue;
                             }
 
@@ -880,6 +887,7 @@ namespace LSE.Teleporter
                 EntityId = Entity.EntityId,
                 ProfileNr = profileNr
             };
+            var possibilities = BeamUpPossible(profileNr);
             //BeamUpAll(message.ProfileNr);
             TransporterNetwork.MessageUtils.SendMessageToAll(message);
         }
@@ -925,7 +933,7 @@ namespace LSE.Teleporter
 
             TargetsListbox = new TargetCombobox<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
                 "Targets",
-                "Targets (saved ones are always visible):",
+                "Targets (+saved targets):",
                 8);
 
             FilterOutrange = new RefreshCheckbox<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
@@ -1011,25 +1019,18 @@ namespace LSE.Teleporter
         {
             var planets = new List<Sandbox.Game.Entities.MyPlanet>();
             var entities = new HashSet<IMyEntity>();
-            if (filterOutRange)
-            {
-                MyAPIGateway.Entities.GetEntities(entities,
-                (x) => (x.GetPosition() - Entity.GetPosition()).LengthSquared() < Math.Pow(MAX_PLANET_SIZE + MaximumRange, 2));
-            }
+            MyAPIGateway.Entities.GetEntities(entities);
             foreach (var entity in entities)
             {
-                try
+                if (entity is Sandbox.Game.Entities.MyPlanet)
                 {
-                    var planet = (Sandbox.Game.Entities.MyPlanet)entity;
+                    var planet = entity as Sandbox.Game.Entities.MyPlanet;
                     var pos = entity.GetPosition();
                     if (!filterOutRange ||
                         IsPositionInRange(planet.GetClosestSurfacePointGlobal(ref pos)))
                     {
                         planets.Add(planet);
                     }
-                }
-                catch
-                {
                 }
             }
             return planets;
