@@ -655,6 +655,7 @@ namespace LSE.Teleporter
 
         public List<IMyEntity> GetTeleportingEntities(TransporterNetwork.MessageProfile profile)
         {
+            
             var entities = new List<IMyEntity>();
             if (!profile.From)
             {
@@ -665,8 +666,8 @@ namespace LSE.Teleporter
             {
                 foreach (var target in profile.Targets)
                 {
-                    //try
-                    //{
+                    try
+                    {
                         switch (target.Type)
                         {
                             case 0:
@@ -696,10 +697,10 @@ namespace LSE.Teleporter
                                 // shouldn't exist
                                 break;
                         }
-                    ///}
-                    //catch
-                    //{
-                    //}
+                    }
+                    catch
+                    {
+                    }
                 }
             }
             return entities;
@@ -1379,17 +1380,23 @@ namespace LSE.Teleporter
             var selected = new List<MyTerminalControlListBoxItem>();
             var teleporter = block.GameLogic.GetAs<Teleporter>();
             foreach (var target in targets)
-            {                
-                var index = Values[InternalName][block].FindIndex((x) => (target.Equals(x.UserData)));
-                if (index == -1)
+            {
+                try
                 {
-                    var item = TargetToItem(block, target);
-                    Values[InternalName][block].Insert(0, item);
-                    selected.Add(item);
+                    var index = Values[InternalName][block].FindIndex((x) => (target.Equals(x.UserData)));
+                    if (index == -1)
+                    {
+                        var item = TargetToItem(block, target);
+                        Values[InternalName][block].Insert(0, item);
+                        selected.Add(item);
+                    }
+                    else
+                    {
+                        selected.Add(Values[InternalName][block][index]);
+                    }
                 }
-                else
+                catch
                 {
-                    selected.Add(Values[InternalName][block][index]);
                 }
             }
             base.Setter(block, selected);
