@@ -27,7 +27,8 @@ namespace LSE.Control
         public ControlAction(
             IMyTerminalBlock block,
             string internalName,
-            string name)
+            string name,
+            string icon)
         {
             Name = name;
             Definition = block.BlockDefinition;
@@ -43,7 +44,7 @@ namespace LSE.Control
                 action.Name = new StringBuilder(Name);
                 action.Enabled = Visible;
                 action.Writer = Writer;
-                action.Icon = @"Textures\GUI\Icons\Teleport.dds";  
+                action.Icon = icon;
                 MyAPIGateway.TerminalControls.AddAction<T>(action);
             }
         }

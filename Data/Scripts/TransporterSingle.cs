@@ -41,7 +41,7 @@ namespace LSE
 
 			TeleporterCenter = new Vector3(0.0f, -0.9f, 0.0f);
 			TeleporterPads = new List<Vector3>() {
-				new Vector3(0.0f, 0.0f, 0.0f)
+				new Vector3(0.0f, -0.9f, 0.0f)
 			};
 			Subtype = "TransporterSingle";
 

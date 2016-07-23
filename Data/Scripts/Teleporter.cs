@@ -21,7 +21,6 @@ using Sandbox.Engine;
 using Sandbox.Game;
 using Sandbox.ModAPI;
 using VRage.Game.ModAPI.Interfaces;
-using Ingame = VRage.Game.ModAPI.Ingame;
 using VRage;
 using VRage.ObjectBuilders;
 using VRage.Game;
@@ -159,13 +158,13 @@ namespace LSE.Teleporter
 
             if (recalculate && RecalculateWhenBlocked)
             {
-                var realPos = MyAPIGateway.Entities.FindFreePlace(position, 0.8f, 21, 7, 0.2f);
+                var realPos = MyAPIGateway.Entities.FindFreePlace(position, 0.9f, 21, 7, 0.2f);
                 if (realPos == null)
                 {
-                    realPos = MyAPIGateway.Entities.FindFreePlace(position, 0.8f, 21, 7, 0.8f);
+                    realPos = MyAPIGateway.Entities.FindFreePlace(position, 0.9f, 21, 7, 0.8f);
                     if (realPos == null)
                     {
-                        realPos = MyAPIGateway.Entities.FindFreePlace(position, 0.8f, 21, 7, 3.2f);
+                        realPos = MyAPIGateway.Entities.FindFreePlace(position, 0.9f, 21, 7, 3.2f);
                     }
                 }
 
@@ -460,7 +459,7 @@ namespace LSE.Teleporter
 
                             distance += info.Distance;
                             var matrixEntity = matrix.Value;
-                            matrixEntity.Translation = matrixEntity.Translation + matrixEntity.Down * 0.9;
+                            //matrixEntity.Translation = matrixEntity.Translation + matrixEntity.Down * 0.9;
                             info.Entity.SetWorldMatrix(matrixEntity);
                         }
                     }
@@ -962,13 +961,13 @@ namespace LSE.Teleporter
                 "Hide Planets      ",
                 false);
 
-
             for (var actionIndex = 0; actionIndex < ProfilesAmount; ++actionIndex)
             {
                 ActionBeam = new ActivateProfileAction<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
                     "Beam" + actionIndex.ToString(),
                     "Teleport - Profile " + actionIndex.ToString(),
-                    actionIndex);
+                    actionIndex,
+                    @"\Textures\GUI\Icons\Teleport.dds");
             } 
         }
 
@@ -1463,8 +1462,9 @@ namespace LSE.Teleporter
             IMyTerminalBlock block,
             string internalName,
             string name,
-            int profileNr)
-            : base(block, internalName, name)
+            int profileNr,
+            string icon)
+            : base(block, internalName, name, icon)
         {
             ProfileNr = profileNr;
         }

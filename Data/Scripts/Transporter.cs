@@ -38,12 +38,12 @@ namespace LSE
 			TeleporterCenter = new Vector3(0.0f, -0.9f, 0.0f);
 
 			TeleporterPads = new List<Vector3>() {
-				new Vector3(-1.4f,  0.0f, 0.8f),
-				new Vector3(-1.4f, 0.0f, -0.8f),
-				new Vector3(1.4f, 0.0f, 0.8f),
-				new Vector3(1.4f, 0.0f, -0.8f),
-				new Vector3(0f, 0.0f, 1.4f),
-				new Vector3(0f, 0.0f, -1.4f)
+				new Vector3(-1.4f,  -0.9f, 0.8f),
+				new Vector3(-1.4f, -0.9f, -0.8f),
+				new Vector3(1.4f, -0.9f, 0.8f),
+				new Vector3(1.4f, -0.9f, -0.8f),
+				new Vector3(0f, -0.9f, 1.4f),
+				new Vector3(0f, -0.9f, -1.4f)
 			};
 
 			Subtype = "Transporter";
