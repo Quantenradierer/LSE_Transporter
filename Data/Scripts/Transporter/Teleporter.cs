@@ -466,10 +466,6 @@ namespace LSE.Teleporter
 
                             distance += info.Distance;
                             var matrixEntity = matrix.Value;
-                            if (info.Endpoint.Entity != null)
-                            {
-                                MyAPIGateway.Utilities.ShowNotification((matrixEntity.Translation - info.Endpoint.Entity.GetPosition()).ToString(), 20000);
-                            }
                             //info.Entity.LocalAABB.Center
                             //matrixEntity.Translation = matrixEntity.Translation + matrixEntity.Down * 0.9;
                             info.Entity.SetWorldMatrix(matrixEntity);
