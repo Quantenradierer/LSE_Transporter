@@ -48,7 +48,9 @@ namespace LSE.Teleporter
     {
         public IMyEntity Entity;
         public TransportEndpoint Endpoint;
+
         public IMyEntity Transporter;
+
         public MyParticleEffect StartEffect;
         public MyParticleEffect EndEffect;
 
@@ -247,6 +249,7 @@ namespace LSE.Teleporter
         }
 
 
+        public static bool DEBUG = false;
 
         public string Subtype = "Transporter";
         public double TeleporterDiameter = 2.5;
@@ -256,8 +259,6 @@ namespace LSE.Teleporter
 
         public int TELEPORT_TIME = 10; // effect timespan is 10 seconds... but time in game runs faster (?!)
 
-
-        public IMyCubeBlock CubeBlock;
         public bool FirstStart = true;
         public static bool FirstStartStatic = true;
         public double Distance = 1;
@@ -285,7 +286,7 @@ namespace LSE.Teleporter
         public RefreshCheckbox<Sandbox.ModAPI.Ingame.IMyOreDetector> FilterPlayers;
         public RefreshCheckbox<Sandbox.ModAPI.Ingame.IMyOreDetector> FilterTransporter;
         public RefreshCheckbox<Sandbox.ModAPI.Ingame.IMyOreDetector> FilterPlanets;
-
+        
         public static Dictionary<string, TransporterNetwork.MessageConfig> s_Configs = new Dictionary<string, TransporterNetwork.MessageConfig>();
         public static void SetConfig(string subtype, TransporterNetwork.MessageConfig config)
 		{
@@ -304,12 +305,12 @@ namespace LSE.Teleporter
         public override void Init(MyObjectBuilder_EntityBase objectBuilder)
         {
             base.Init(objectBuilder);
-            CubeBlock = (IMyCubeBlock)Entity;
-            if (CubeBlock.BlockDefinition.SubtypeName != Subtype) { return; }
+            var cubeBlock = (IMyCubeBlock)Entity;
+            if (cubeBlock.BlockDefinition.SubtypeName != Subtype) { return; }
 
-            CubeBlock.Components.TryGet<Sandbox.Game.EntityComponents.MyResourceSinkComponent>(out Sink);
+            cubeBlock.Components.TryGet<Sandbox.Game.EntityComponents.MyResourceSinkComponent>(out Sink);
             Sink.SetRequiredInputFuncByType(PowerDefinitionId, CalcRequiredPower);
-            CubeBlock.IsWorkingChanged += IsWorkingChanged;
+            cubeBlock.IsWorkingChanged += IsWorkingChanged;
             NeedsUpdate |= MyEntityUpdateEnum.EACH_FRAME;
 
 			((IMyFunctionalBlock)Entity).AppendingCustomInfo += AppendingCustomInfo;
@@ -346,8 +347,12 @@ namespace LSE.Teleporter
                     }
                     teleporter.DrawEmissive();
                 }
-                catch
+                catch (Exception error)
                 {
+                    if (Teleporter.DEBUG)
+                    {
+                        MyAPIGateway.Utilities.ShowNotification("ERROR (1): " + error.Message);
+                    }
                 }
             }
         }
@@ -355,7 +360,8 @@ namespace LSE.Teleporter
         public override void UpdateBeforeSimulation()
         {
             base.UpdateBeforeSimulation();
-			if (CubeBlock.BlockDefinition.SubtypeName != Subtype) { return; }
+            var cubeBlock = (IMyCubeBlock)Entity;
+            if (cubeBlock.BlockDefinition.SubtypeName != Subtype) { return; }
 
             if (FirstStartStatic)
             {
@@ -411,6 +417,7 @@ namespace LSE.Teleporter
             if (MyAPIGateway.Session.GameDateTime > transportTime)
             {
 
+
                 double distance = 0.0f;
                 foreach (var info in TeleportingInfos)
                 {
@@ -429,11 +436,11 @@ namespace LSE.Teleporter
                                 var playerEndpoint = MyAPIGateway.Players.GetPlayerControllingEntity(info.Endpoint.Entity);
                                 if (player != null)
                                 {
-                                    friendly = player.GetRelationTo(CubeBlock.OwnerId).IsFriendly();
+                                    friendly = player.GetRelationTo(cubeBlock.OwnerId).IsFriendly();
                                 }
                                 if (playerEndpoint != null)
                                 {
-                                    friendlyEndpoint = playerEndpoint.GetRelationTo(CubeBlock.OwnerId).IsFriendly();
+                                    friendlyEndpoint = playerEndpoint.GetRelationTo(cubeBlock.OwnerId).IsFriendly();
                                 }
 
                                 if (!friendly || !friendlyEndpoint)
@@ -444,8 +451,8 @@ namespace LSE.Teleporter
 
                             }
 
-                            var endpointProtected = Jammer.IsProtected(matrix.Value.Translation, CubeBlock);
-                            var entityProtected = Jammer.IsProtected(info.Entity.GetPosition(), CubeBlock);
+                            var endpointProtected = Jammer.IsProtected(matrix.Value.Translation, cubeBlock);
+                            var entityProtected = Jammer.IsProtected(info.Entity.GetPosition(), cubeBlock);
                             if (endpointProtected || entityProtected)
                             {
                                 StartFailedTransportSound(info.Entity);
@@ -459,6 +466,11 @@ namespace LSE.Teleporter
 
                             distance += info.Distance;
                             var matrixEntity = matrix.Value;
+                            if (info.Endpoint.Entity != null)
+                            {
+                                MyAPIGateway.Utilities.ShowNotification((matrixEntity.Translation - info.Endpoint.Entity.GetPosition()).ToString(), 20000);
+                            }
+                            //info.Entity.LocalAABB.Center
                             //matrixEntity.Translation = matrixEntity.Translation + matrixEntity.Down * 0.9;
                             info.Entity.SetWorldMatrix(matrixEntity);
                         }
@@ -502,12 +514,14 @@ namespace LSE.Teleporter
         public override void UpdateBeforeSimulation100()
         {
             base.UpdateBeforeSimulation100();
-            if (CubeBlock.BlockDefinition.SubtypeName != Subtype) { return; }
+
+            var cubeBlock = (IMyCubeBlock)Entity;
+            if (cubeBlock.BlockDefinition.SubtypeName != Subtype) { return; }
 
 
             DrawEmissive();
 
-            if (CubeBlock.IsWorking)
+            if (cubeBlock.IsWorking)
             {
                 TeleporterList.Add(this);
             }
@@ -518,18 +532,19 @@ namespace LSE.Teleporter
         }
 
         public void DrawEmissive()
-        {            
-            if (!CubeBlock.IsWorking)
+        {
+            var cubeBlock = (IMyCubeBlock)Entity;
+            if (!cubeBlock.IsWorking)
             {
-                CubeBlock.SetEmissiveParts("Emissive", new Color(255, 0, 0), 0.0f);
+                cubeBlock.SetEmissiveParts("Emissive", new Color(255, 0, 0), 0.0f);
             }
             else if (TeleportStart != null && TeleportingInfos.Count == 0)
             {
-                CubeBlock.SetEmissiveParts("Emissive", new Color(32, 16, 0), 0.0f);
+                cubeBlock.SetEmissiveParts("Emissive", new Color(32, 16, 0), 0.0f);
             }
             else
             {
-                CubeBlock.SetEmissiveParts("Emissive", new Color(0, 128, 0), 1.0f);
+                cubeBlock.SetEmissiveParts("Emissive", new Color(0, 128, 0), 1.0f);
             }
         }
 
@@ -585,6 +600,18 @@ namespace LSE.Teleporter
         }
 
 
+        public override void Close()
+        {
+            try
+            {
+                Teleporter.TeleporterList.Remove(this);
+            }
+            catch
+            {
+            }
+            base.Close();
+        }
+
         public override void MarkForClose()
         {
             try
@@ -594,6 +621,7 @@ namespace LSE.Teleporter
             catch
             {
             }
+            base.MarkForClose();
         }
 
         public void AppendingCustomInfo(IMyTerminalBlock block, StringBuilder stringBuilder)
@@ -697,8 +725,12 @@ namespace LSE.Teleporter
                                 break;
                         }
                     }
-                    catch
+                    catch (Exception error)
                     {
+                        if (Teleporter.DEBUG)
+                        {
+                            MyAPIGateway.Utilities.ShowNotification("ERROR (3): " + error.Message);
+                        }
                     }
                 }
             }
@@ -853,7 +885,8 @@ namespace LSE.Teleporter
             MyAPIGateway.Players.GetPlayers(players, (x) => (x.GetPosition() - pos).LengthSquared() < distanceSquared && IsPositionInRange(x.GetPosition()));
             if (!BeamEnemies)
             {
-                players.RemoveAll((x) => !x.GetRelationTo(CubeBlock.OwnerId).IsFriendly());
+                var cubeBlock = (IMyCubeBlock)Entity;
+                players.RemoveAll((x) => !x.GetRelationTo(cubeBlock.OwnerId).IsFriendly());
             }
             return players;
         }
@@ -889,11 +922,17 @@ namespace LSE.Teleporter
             };
             var possibilities = BeamUpPossible(profileNr);
             //BeamUpAll(message.ProfileNr);
+            if (Teleporter.DEBUG)
+            {
+                MyAPIGateway.Utilities.ShowNotification("SendBeamMessage");
+            }
+
             TransporterNetwork.MessageUtils.SendMessageToAll(message);
         }
 
         void RemoveOreUI()
         {
+            
             List<IMyTerminalAction> actions = new List<IMyTerminalAction>();
             MyAPIGateway.TerminalControls.GetActions<Sandbox.ModAPI.Ingame.IMyOreDetector>(out actions);
             var actionAntenna = actions.First((x) => x.Id.ToString() == "BroadcastUsingAntennas");
@@ -903,16 +942,23 @@ namespace LSE.Teleporter
             MyAPIGateway.TerminalControls.GetControls<Sandbox.ModAPI.Ingame.IMyOreDetector>(out controls);
             var antennaControl = controls.First((x) => x.Id.ToString() == "BroadcastUsingAntennas");
             antennaControl.Visible = ShowControlOreDetectorControls;
-            var radiusControl = controls.First((x) => x.Id.ToString() == "Range");
-            radiusControl.Visible = ShowControlOreDetectorControls;
+
+            try
+            {
+                var radiusControl = controls.First((x) => x.Id.ToString() == "Range");
+                radiusControl.Visible = ShowControlOreDetectorControls;
+            }
+            catch
+            {
+            }
         }
 
 
         void CreateUI()
         {
             RemoveOreUI();
-            //new Control.Seperator<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity, "TransporterSeperator1");
-            //new Control.Seperator<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity, "TransporterSeperator2");
+            //new Control.Seperator<Sandbox.ModAPI.IMyOreDetector>((IMyTerminalBlock)Entity, "TransporterSeperator1");
+            //new Control.Seperator<Sandbox.ModAPI.IMyOreDetector>((IMyTerminalBlock)Entity, "TransporterSeperator2");
 
             Button = new BeamButton<Sandbox.ModAPI.Ingame.IMyOreDetector>((IMyTerminalBlock)Entity,
                 "Beam",
@@ -1010,7 +1056,8 @@ namespace LSE.Teleporter
 
             if (!BeamEnemies)
             {
-                players.RemoveAll((x) => !x.GetRelationTo(CubeBlock.OwnerId).IsFriendly());
+                var cubeBlock = (IMyCubeBlock)Entity;
+                players.RemoveAll((x) => !x.GetRelationTo(cubeBlock.OwnerId).IsFriendly());
             }
             return players;
         }
@@ -1113,6 +1160,10 @@ namespace LSE.Teleporter
 
         public override bool Getter(IMyTerminalBlock block)
         {
+            if (block.GameLogic == null)
+            {
+                return DefaultValue;
+            }
             var teleporter = block.GameLogic.GetAs<Teleporter>();
             var profileNr = teleporter.ProfileListbox.GetterObjects(block)[0];
             var profile = teleporter.GetProfile(profileNr);
@@ -1145,10 +1196,14 @@ namespace LSE.Teleporter
 
         public override void FillContent(IMyTerminalBlock block, List<MyTerminalControlListBoxItem> items, List<MyTerminalControlListBoxItem> selected)
         {
+            if (block.GameLogic == null)
+            {
+                return;
+            }
             FixValues(block);
             var teleporter = block.GameLogic.GetAs<Teleporter>();
 
-            Values[InternalName][block].Clear();
+            var newItems = new List<MyTerminalControlListBoxItem>();
             items.Clear();
 
             var maxProfiles = teleporter.ProfilesAmount;
@@ -1159,8 +1214,9 @@ namespace LSE.Teleporter
                     VRage.Utils.MyStringId.GetOrCompute(profile.ProfileName),
                     profileNr);
 
-                Values[InternalName][block].Add(item);
+                newItems.Add(item);
             }
+            Values[InternalName][block.EntityId] = newItems;
             base.FillContent(block, items, selected);
         }
 
@@ -1239,7 +1295,7 @@ namespace LSE.Teleporter
         public void AddTarget(IMyTerminalBlock block, TransporterNetwork.MessageTarget target)
         {
             var item = TargetToItem(block, target);
-            Values[InternalName][block].Add(item);
+            Values[InternalName][block.EntityId].Add(item);
         }
 
         public void AddGps(IMyTerminalBlock block)
@@ -1326,8 +1382,13 @@ namespace LSE.Teleporter
 
         public override void FillContent(IMyTerminalBlock block, List<MyTerminalControlListBoxItem> items, List<MyTerminalControlListBoxItem> selected)
         {
+            if (block.GameLogic == null)
+            {
+                return;
+            }
+
             var teleporter = block.GameLogic.GetAs<Teleporter>();
-            Values[InternalName][block].Clear();
+            Values[InternalName][block.EntityId].Clear();
             items.Clear();
 
             var from = teleporter.SwitchControl.Getter(block);
@@ -1382,20 +1443,24 @@ namespace LSE.Teleporter
             {
                 try
                 {
-                    var index = Values[InternalName][block].FindIndex((x) => (target.Equals(x.UserData)));
+                    var index = Values[InternalName][block.EntityId].FindIndex((x) => (target.Equals(x.UserData)));
                     if (index == -1)
                     {
                         var item = TargetToItem(block, target);
-                        Values[InternalName][block].Insert(0, item);
+                        Values[InternalName][block.EntityId].Insert(0, item);
                         selected.Add(item);
                     }
                     else
                     {
-                        selected.Add(Values[InternalName][block][index]);
+                        selected.Add(Values[InternalName][block.EntityId][index]);
                     }
                 }
-                catch
+                catch (Exception error)
                 {
+                    if (Teleporter.DEBUG)
+                    {
+                        MyAPIGateway.Utilities.ShowNotification("ERROR (2): " + error.Message);
+                    }
                 }
             }
             base.Setter(block, selected);
@@ -1436,6 +1501,11 @@ namespace LSE.Teleporter
 
         public override StringBuilder Getter(IMyTerminalBlock block)
         {
+            if (block.GameLogic == null)
+            {
+                return new StringBuilder("");
+            }
+
             var teleporter = block.GameLogic.GetAs<Teleporter>();
             var profileNr = teleporter.ProfileListbox.GetterObjects(block)[0];
             var profile = teleporter.GetProfile(profileNr);

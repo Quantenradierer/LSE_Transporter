@@ -13,7 +13,6 @@ using Sandbox.Engine;
 using Sandbox.Game;
 using Sandbox.ModAPI;
 using VRage.Game.ModAPI.Interfaces;
-using Ingame = VRage.Game.ModAPI.Ingame;
 using VRage;
 using VRage.ObjectBuilders;
 using VRage.Game;

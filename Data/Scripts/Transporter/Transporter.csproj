@@ -85,22 +85,21 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="core\Action.cs" />
-    <Compile Include="core\ButtonControl.cs" />
+    <Compile Include="Action.cs" />
+    <Compile Include="BaseControl.cs" />
+    <Compile Include="ButtonControl.cs" />
+    <Compile Include="Checkbox.cs" />
+    <Compile Include="ComboboxControl.cs" />
+    <Compile Include="GameLogicComponent.cs" />
     <Compile Include="JammerNetwork.cs" />
+    <Compile Include="Logger.cs" />
+    <Compile Include="Seperator.cs" />
+    <Compile Include="Slider.cs" />
+    <Compile Include="SwitchControl.cs" />
+    <Compile Include="Textbox.cs" />
     <Compile Include="TransporterNetwork.cs" />
-    <Compile Include="core\Slider.cs" />
-    <Compile Include="core\Control.cs" />
-    <Compile Include="core\GameLogicComponent.cs" />
-    <Compile Include="core\Logger.cs" />
-    <Compile Include="core\Seperator.cs" />
-    <Compile Include="core\Checkbox.cs" />
-    <Compile Include="core\Textbox.cs" />
-    <Compile Include="Debug.cs" />
     <Compile Include="Jammer.cs" />
     <Compile Include="Teleporter.cs" />
-    <Compile Include="core\SwitchControl.cs" />
-    <Compile Include="core\ComboboxControl.cs" />
     <Compile Include="TransporterSingleLarge.cs" />
     <Compile Include="TransporterSingle.cs" />
     <Compile Include="Transporter.cs" />
@@ -108,9 +107,7 @@
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="ui\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.  
        Other similar extension points exist, see Microsoft.Common.targets. 
