@@ -18,7 +18,7 @@
         <Component Subtype="SteelPlate" Count="30" />
         <Component Subtype="SmallTube" Count="40" />
         <Component Subtype="Computer" Count="50" />
-        <Component Subtype="RadioCommunication" Count="50" />
+        <Component Subtype="RadioCommunication" Count="1" />
         <Component Subtype="Construction" Count="20" />
         <Component Subtype="SteelPlate" Count="30" />
       </Components>
